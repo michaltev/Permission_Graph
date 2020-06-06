@@ -5,7 +5,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 SERVICE_ACCOUNT_EMAIL = 'ron@test.authomize.com'
 
 # Path to the Service Account's Private Key file
-SERVICE_ACCOUNT_JSON_FILE_PATH = './authomize-15054614561264767466-5ef86365604b.json'
+SERVICE_ACCOUNT_JSON_FILE_PATH = './service_account_file.json'
 
 
 class DirectoryAPI:
