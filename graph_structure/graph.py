@@ -33,9 +33,9 @@ class Graph:
             lst_identities = binding["members"]
 
             for identity_str in lst_identities:
-                # identity_id, identity_type = generate_identity_id_type(identity_str)
+                identity_id, identity_type = generate_identity_id_type(identity_str)
                 # creates identities nodes
-                identity_node = IdentityNode(identity_str)#identity_id, identity_type)
+                identity_node = IdentityNode(identity_id, identity_type)
                 self.add_node(identity_node)
 
                 # creates role-edge to each identity
