@@ -183,15 +183,18 @@ class Graph:
 
     def get_resources_permitted(self, p_resource_id: str):
         lst_permitted_identities = []
-        # gets all the parents resources of the current resource
         lst_parent_resources = self.get_resource_hierarchy(p_resource_id)
-        # adds the current resource to the list of resources
         lst_parent_resources.append(p_resource_id)
 
-        for parent_resource_id in lst_parent_resources:
-            # gets all the identities connected to the resource
-            for edge in self.__get_identities_by_resource(parent_resource_id):
-                identity_tuple = (edge.from_node.id, edge.type)
+        for resource_id in lst_parent_resources:
+            for edge in self.__get_identities_by_resource(resource_id):
+                identity_node = edge.from_node
+                if identity_node.type == "group":
+                    for user_id in self.groups_dictionary[identity_node.id]:
+                        identity_tuple = (user_id, edge.type)
+                        if identity_tuple not in lst_permitted_identities:
+                            lst_permitted_identities.append(identity_tuple)
+                identity_tuple = (identity_node.id, edge.type)
                 if identity_tuple not in lst_permitted_identities:
                     lst_permitted_identities.append(identity_tuple)
 
