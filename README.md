@@ -1,7 +1,7 @@
 # Permission_Graph
 
 Graph:
-nodes - representing the different entities. For now, that would be identities and resources
+nodes - representing the different entities. 
 edges - representing the relationship between different nodes. 
 
 Task 1 - Build a Permission Graph From Static Data
