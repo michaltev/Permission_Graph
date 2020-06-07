@@ -60,7 +60,7 @@ class Graph:
         pass
 
     def create_graph(self):
-        with jsonlines.open('data_file.json') as reader:
+        with jsonlines.open('./data/data_file.json') as reader:
             for line in reader:
                 # creates resource node
                 node_id = generate_resource_id(line["name"])
