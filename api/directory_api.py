@@ -5,7 +5,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 SERVICE_ACCOUNT_EMAIL = 'ron@test.authomize.com'
 
 # Path to the Service Account's Private Key file
-SERVICE_ACCOUNT_JSON_FILE_PATH = './service_account_file.json'
+SERVICE_ACCOUNT_JSON_FILE_PATH = 'data/service_account_file.json'
 
 
 class DirectoryAPI:
@@ -19,9 +19,9 @@ class DirectoryAPI:
         credentials = credentials.create_delegated(SERVICE_ACCOUNT_EMAIL)
 
         self.service = build('admin', 'directory_v1', credentials=credentials)
-        pass
 
     def fetch_users_in_organization(self):
+        # Call the Admin SDK Directory API
         results = self.service.users().list(customer='my_customer').execute()
         users = results.get('users', [])
 
