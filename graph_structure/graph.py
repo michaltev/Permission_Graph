@@ -1,7 +1,8 @@
 import jsonlines
 
 from graph_structure.edge import Edge, ParentEdge, RoleEdge
-from graph_structure.node import Node, IdentityNode, ResourceNode, generate_resource_id, generate_resource_asset_type
+from graph_structure.node import Node, IdentityNode, ResourceNode, \
+    generate_resource_id, generate_resource_asset_type, generate_identity_id_type
 
 
 class Graph:
@@ -12,22 +13,56 @@ class Graph:
 
     def __get_resources_by_identity(self, p_identity_id: str):
         return [edge for edge in self.edges if
-                type(edge) == RoleEdge and edge.from_node.id == p_identity_id]
+                type(edge) is RoleEdge and edge.from_node.id == p_identity_id]
 
     def __get_parent_by_resource(self, p_node_id: str):
         return [edge.from_node.id for edge in self.edges if
-                type(edge) == ParentEdge and edge.to_node.id == p_node_id][0]
+                type(edge) is ParentEdge and edge.to_node.id == p_node_id][0]
 
     def __get_identities_by_resource(self, p_resource_id: str):
         return [edge for edge in self.edges if
-                type(edge) == RoleEdge and edge.to_node.id == p_resource_id]
+                type(edge) is RoleEdge and edge.to_node.id == p_resource_id]
+
+    def __create_identities_relationships(self, p_curr_resource_node, lst_bindings):
+        for binding in lst_bindings:
+            role = binding["role"]
+            lst_identities = binding["members"]
+
+            for identity_str in lst_identities:
+                identity_id, identity_type = generate_identity_id_type(identity_str)
+                # creates identities nodes
+                identity_node = IdentityNode(identity_id, identity_type)
+                self.add_node(identity_node)
+
+                # creates role-edge to each identity
+                role_edge = RoleEdge(identity_node, p_curr_resource_node, role)
+                self.add_edge(role_edge)
+
+    def __create_ancestors_relationships(self, p_curr_resource_node, p_lst_ancestors):
+        child_node = p_curr_resource_node
+        for i in range(1, len(p_lst_ancestors)):
+            # adds the node of the father
+            ancestor_id = p_lst_ancestors[i]
+            ancestor_node = ResourceNode(ancestor_id)
+            self.add_node(ancestor_node)
+
+            # creates the edge between them
+            parent_edge = ParentEdge(ancestor_node, child_node)
+            self.add_edge(parent_edge)
+
+            # the parent becomes the child of the next ancestor
+            child_node = ancestor_node
+
+    def __create_resource_node(self, p_node_id, p_asset_type):
+        curr_resource_node = ResourceNode(p_node_id, p_asset_type)
+        self.add_node(curr_resource_node)
+        return curr_resource_node
 
     def __get_recursive_hierarchy(self, p_resource_id: str, p_path: list):
         if self.root_resource.id == p_resource_id:
             return p_path
         parent_resource = self.__get_parent_by_resource(p_resource_id)
         p_path.append(parent_resource)
-
         return self.__get_recursive_hierarchy(parent_resource, p_path)
 
     def __get_children_resources_bfs(self, p_root_resource: ResourceNode):
@@ -49,7 +84,6 @@ class Graph:
                 for neighbour in neighbours:
                     queue.append(neighbour)
         return explored
-        pass
 
     def __update_edged_with_node(self, p_node: Node):
         for i, edge in enumerate(self.edges):
@@ -57,88 +91,54 @@ class Graph:
                 self.edges[i].from_node = p_node
             elif edge.to_node.id == p_node.id:
                 self.edges[i].to_node = p_node
-        pass
 
     def create_graph(self):
         with jsonlines.open('./data/data_file.json') as reader:
             for line in reader:
-                # creates resource node
                 node_id = generate_resource_id(line["name"])
                 asset_type = generate_resource_asset_type(line["asset_type"])
-                curr_resource_node = ResourceNode(node_id, asset_type)
-                self.add_node(curr_resource_node)
+                curr_resource_node = self.__create_resource_node(node_id, asset_type)
 
-                if asset_type != "Organization":
+                if curr_resource_node.asset_type != "Organization":
                     lst_ancestors = line["ancestors"]
-                    child_node = curr_resource_node
-
-                    for i in range(1, len(lst_ancestors)):
-                        # adds the node of the father
-                        ancestor_id = lst_ancestors[i]
-                        ancestor_node = ResourceNode(ancestor_id)
-                        self.add_node(ancestor_node)
-
-                        # creates the edge between them
-                        parent_edge = ParentEdge(ancestor_node, child_node)
-                        self.add_edge(parent_edge)
-
-                        # the parent becomes the child of the next ancestor
-                        child_node = ancestor_node
+                    self.__create_ancestors_relationships(curr_resource_node, lst_ancestors)
 
                 lst_bindings = line["iam_policy"]["bindings"]
-
-                for binding in lst_bindings:
-                    role = binding["role"]
-                    lst_identities = binding["members"]
-
-                    for identity in lst_identities:
-                        # creates identities nodes
-                        identity_node = IdentityNode(identity)
-                        self.add_node(identity_node)
-
-                        # creates role-edge to each identity
-                        role_edge = RoleEdge(identity_node, curr_resource_node, role)
-                        self.add_edge(role_edge)
-        pass
+                self.__create_identities_relationships(curr_resource_node, lst_bindings)
 
     def add_node(self, p_node: Node):
         node_index = next((index for (index, node) in enumerate(self.nodes) if node.id == p_node.id), None)
         if node_index:
             curr_node = self.nodes[node_index]
-            if (hasattr(curr_node, "asset_type")) and \
-                    (p_node.asset_type != "") and \
-                    (curr_node.asset_type != p_node.asset_type):
+            if (type(curr_node) is ResourceNode) and (type(p_node) is ResourceNode) and \
+                    (p_node.asset_type != "") and (curr_node.asset_type != p_node.asset_type):
                 self.nodes[node_index] = p_node
                 self.__update_edged_with_node(p_node)
         else:
             self.nodes.append(p_node)
 
-        if (hasattr(p_node, "asset_type")) and (p_node.asset_type == "Organization"):
+        if (type(p_node) is ResourceNode) and (p_node.asset_type == "Organization"):
             self.root_resource = p_node
 
         return p_node
-        pass
 
     def add_edge(self, p_edge: Edge):
-        is_exist = next((edge for edge in self.edges if edge.from_node.id == p_edge.from_node.id and
+        is_exist = next((edge for edge in self.edges if
+                         edge.from_node.id == p_edge.from_node.id and
                          edge.to_node.id == p_edge.to_node.id and
                          edge.type == p_edge.type), None)
         if is_exist is None:
             self.edges.append(p_edge)
 
-        pass
-
     def print_relationships(self):
         for edge in self.edges:
             print(edge.from_node.id + "---" + edge.type + "--->" + edge.to_node.id)
-        pass
 
     def get_resource_hierarchy(self, p_resource_id: str):
         if self.root_resource.id == p_resource_id:
             return "That was easy! You are searching the root organization"
         path = []
         return self.__get_recursive_hierarchy(p_resource_id, path)
-        pass
 
     def get_user_permissions(self, p_identity_id: str):
         lst_permissions = list()
@@ -154,7 +154,6 @@ class Graph:
                     lst_permissions.append(permission_tuple)
 
         return lst_permissions
-        pass
 
     def get_resources_permitted(self, p_resource_id: str):
         lst_permitted_identities = []
@@ -171,4 +170,3 @@ class Graph:
                     lst_permitted_identities.append(identity_tuple)
 
         return lst_permitted_identities
-        pass
