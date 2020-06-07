@@ -3,15 +3,10 @@ class Node:
         self.id = p_id
         self.type = p_type
 
-    pass
-
 
 class IdentityNode(Node):
-    def __init__(self, p_id: str):  # task6 > p_sub_type):
-        super().__init__(p_id, "identity")
-        # task6 > self.sub_type = p_sub_type
-
-    pass
+    def __init__(self, p_id: str, p_type: str):
+        super().__init__(p_id, p_type)
 
 
 class ResourceNode(Node):
@@ -22,16 +17,19 @@ class ResourceNode(Node):
             self.asset_type = ""
         super().__init__(p_id, "resource")
 
-    pass
-
 
 def generate_resource_id(p_name: str):
     lst_name_split = p_name.split("/")
     return lst_name_split[len(lst_name_split) - 2] + "/" + lst_name_split[len(lst_name_split) - 1]
-    pass
 
 
-def generate_resource_asset_type(p_asset_type):
+def generate_resource_asset_type(p_asset_type: str):
     lst_name_split = p_asset_type.split("/")
     return lst_name_split[len(lst_name_split) - 1]
-    pass
+
+
+def generate_identity_id_type(p_identity_name: str):
+    lst_name_split = p_identity_name.split(":")
+    identity_type = lst_name_split[0]
+    identity_id = lst_name_split[1]
+    return identity_id, identity_type
