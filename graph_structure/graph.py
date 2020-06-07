@@ -9,12 +9,12 @@ from graph_structure.node import Node, IdentityNode, ResourceNode, \
 class Graph:
     def __init__(self):
         self.edges = []
-        self.nodes = []
+        self.nodes = {}
         self.root_resource = {}
         google_directory_api = DirectoryAPI()
         self.groups_dictionary = google_directory_api.fetch_users_in_groups()
 
-    def __get_group_of_user(self, p_user_email):
+    def __get_groups_of_user(self, p_user_email):
         lst_groups_user_belong_to = []
         for group in self.groups_dictionary:
             if p_user_email in self.groups_dictionary[group]:
@@ -121,15 +121,17 @@ class Graph:
                 self.__create_identities_relationships(curr_resource_node, lst_bindings)
 
     def add_node(self, p_node: Node):
-        node_index = next((index for (index, node) in enumerate(self.nodes) if node.id == p_node.id), None)
-        if node_index:
-            curr_node = self.nodes[node_index]
-            if (type(curr_node) == ResourceNode) and (type(p_node) == ResourceNode) and \
-                    (p_node.asset_type != "") and (curr_node.asset_type != p_node.asset_type):
-                self.nodes[node_index] = p_node
+        node_in_graph = self.nodes.get(p_node.id)
+        if node_in_graph is not None:
+            is_need_to_update_asset_type = type(node_in_graph) == ResourceNode and \
+                                           type(p_node) == ResourceNode and \
+                                           p_node.asset_type != "" and \
+                                           node_in_graph.asset_type != p_node.asset_type
+            if is_need_to_update_asset_type:
+                self.nodes[p_node.id] = p_node
                 self.__update_edged_with_node(p_node)
         else:
-            self.nodes.append(p_node)
+            self.nodes[p_node.id] = p_node
 
         if (type(p_node) == ResourceNode) and (p_node.asset_type == "Organization"):
             self.root_resource = p_node
@@ -172,9 +174,11 @@ class Graph:
 
     def __get_direct_resources_of_identity(self, p_identity_id):
         lst_resources_connected = self.__get_resources_by_identity(p_identity_id)
-        lst_groups_user_belong_to = self.__get_group_of_user(p_identity_id)
-        for group_identity in lst_groups_user_belong_to:
-            lst_resources_connected += self.__get_resources_by_identity(group_identity)
+        is_user_identity = self.nodes.get(p_identity_id).type == "user"
+        if is_user_identity:
+            lst_groups_user_belong_to = self.__get_groups_of_user(p_identity_id)
+            for group_identity in lst_groups_user_belong_to:
+                lst_resources_connected += self.__get_resources_by_identity(group_identity)
         return lst_resources_connected
 
     def get_resources_permitted(self, p_resource_id: str):
