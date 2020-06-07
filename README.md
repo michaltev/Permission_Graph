@@ -1,8 +1,8 @@
 # Permission_Graph
 
 Graph:
-● nodes - representing the different entities. For now, that would be identities and resources
-● edges - representing the relationship between different nodes. 
+nodes - representing the different entities. For now, that would be identities and resources
+edges - representing the relationship between different nodes. 
 
 Task 1 - Build a Permission Graph From Static Data
 1. Parse a file containing JSON-formatted lines representing permission policies in GCP.
