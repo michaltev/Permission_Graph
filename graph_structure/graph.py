@@ -1,5 +1,6 @@
 import jsonlines
 
+from api.directory_api import DirectoryAPI
 from graph_structure.edge import Edge, ParentEdge, RoleEdge
 from graph_structure.node import Node, IdentityNode, ResourceNode, \
     generate_resource_id, generate_resource_asset_type, generate_identity_id_type
@@ -10,6 +11,15 @@ class Graph:
         self.edges = []
         self.nodes = []
         self.root_resource = {}
+        google_directory_api = DirectoryAPI()
+        self.groups_dictionary = google_directory_api.fetch_users_in_groups()
+
+    def __get_group_of_user(self, p_user_email):
+        lst_groups_user_belong_to = []
+        for group in self.groups_dictionary:
+            if p_user_email in self.groups_dictionary[group]:
+                lst_groups_user_belong_to.append(group)
+        return lst_groups_user_belong_to
 
     def __get_resources_by_identity(self, p_identity_id: str):
         return [edge for edge in self.edges if
@@ -146,8 +156,9 @@ class Graph:
 
     def get_user_permissions(self, p_identity_id: str):
         lst_permissions = list()
-        # gets all the resources connected to the identity
-        for edge in self.__get_resources_by_identity(p_identity_id):
+        lst_resources_connected = self.__get_direct_resources_of_identity(p_identity_id)
+
+        for edge in lst_resources_connected:
             role = edge.type
             resource_node = edge.to_node
             # bfs all the children of the resource
@@ -158,6 +169,13 @@ class Graph:
                     lst_permissions.append(permission_tuple)
 
         return lst_permissions
+
+    def __get_direct_resources_of_identity(self, p_identity_id):
+        lst_resources_connected = self.__get_resources_by_identity(p_identity_id)
+        lst_groups_user_belong_to = self.__get_group_of_user(p_identity_id)
+        for group_identity in lst_groups_user_belong_to:
+            lst_resources_connected += self.__get_resources_by_identity(group_identity)
+        return lst_resources_connected
 
     def get_resources_permitted(self, p_resource_id: str):
         lst_permitted_identities = []
