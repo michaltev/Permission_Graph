@@ -44,27 +44,19 @@ class Graph:
 
             for identity_str in lst_identities:
                 identity_id, identity_type = generate_identity_id_type(identity_str)
-                # creates identities nodes
                 identity_node = IdentityNode(identity_id, identity_type)
                 self.add_node(identity_node)
-
-                # creates role-edge to each identity
                 role_edge = RoleEdge(identity_node, p_curr_resource_node, role)
                 self.add_edge(role_edge)
 
     def __create_ancestors_relationships(self, p_curr_resource_node, p_lst_ancestors):
         child_node = p_curr_resource_node
         for i in range(1, len(p_lst_ancestors)):
-            # adds the node of the father
             ancestor_id = p_lst_ancestors[i]
             ancestor_node = ResourceNode(ancestor_id)
             self.add_node(ancestor_node)
-
-            # creates the edge between them
             parent_edge = ParentEdge(ancestor_node, child_node)
             self.add_edge(parent_edge)
-
-            # the parent becomes the child of the next ancestor
             child_node = ancestor_node
 
     def __create_resource_node(self, p_node_id, p_asset_type):
@@ -80,21 +72,13 @@ class Graph:
         return self.__get_recursive_hierarchy(parent_resource, p_path)
 
     def __get_children_resources_bfs(self, p_root_resource: ResourceNode):
-        # keep track of all visited nodes
         explored = []
-        # keep track of nodes to be checked
         queue = [p_root_resource]
-
-        # keep looping until there are nodes still to be checked
         while queue:
-            # pop shallowest node (first node) from queue
             node = queue.pop(0)
             if node not in explored:
-                # add node to list of checked nodes
                 explored.append(node)
                 neighbours = self.__get_resources_by_parent_resource(node.id)
-
-                # add neighbours of node to queue
                 for neighbour in neighbours:
                     queue.append(neighbour)
         return explored
@@ -105,6 +89,15 @@ class Graph:
                 self.edges[i].from_node = p_node
             elif edge.to_node.id == p_node.id:
                 self.edges[i].to_node = p_node
+
+    def __get_direct_resources_of_identity(self, p_identity_id):
+        lst_resources_connected = self.__get_resources_by_identity(p_identity_id)
+        is_user_identity = self.nodes.get(p_identity_id).type == "user"
+        if is_user_identity:
+            lst_groups_user_belong_to = self.__get_groups_of_user(p_identity_id)
+            for group_identity in lst_groups_user_belong_to:
+                lst_resources_connected += self.__get_resources_by_identity(group_identity)
+        return lst_resources_connected
 
     def create_graph(self):
         with jsonlines.open('./data/data_file.json') as reader:
@@ -163,23 +156,13 @@ class Graph:
         for edge in lst_resources_connected:
             role = edge.type
             resource_node = edge.to_node
-            # bfs all the children of the resource
-            lst_children_resources_bfs = self.__get_children_resources_bfs(resource_node)
-            for node in lst_children_resources_bfs:
+            lst_children_resources = self.__get_children_resources_bfs(resource_node)
+            for node in lst_children_resources:
                 permission_tuple = (node.id, node.asset_type, role)
                 if permission_tuple not in lst_permissions:
                     lst_permissions.append(permission_tuple)
 
         return lst_permissions
-
-    def __get_direct_resources_of_identity(self, p_identity_id):
-        lst_resources_connected = self.__get_resources_by_identity(p_identity_id)
-        is_user_identity = self.nodes.get(p_identity_id).type == "user"
-        if is_user_identity:
-            lst_groups_user_belong_to = self.__get_groups_of_user(p_identity_id)
-            for group_identity in lst_groups_user_belong_to:
-                lst_resources_connected += self.__get_resources_by_identity(group_identity)
-        return lst_resources_connected
 
     def get_resources_permitted(self, p_resource_id: str):
         lst_permitted_identities = []

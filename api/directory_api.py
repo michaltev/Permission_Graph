@@ -1,12 +1,9 @@
 from googleapiclient.discovery import build
 from oauth2client.service_account import ServiceAccountCredentials
 
-# Email of the Service Account
 SERVICE_ACCOUNT_EMAIL = 'ron@test.authomize.com'
-
-# Path to the Service Account's Private Key file
 SERVICE_ACCOUNT_JSON_FILE_PATH = 'data/service_account_file.json'
-
+COSTUMER = "my_customer"
 
 class DirectoryAPI:
     def __init__(self):
@@ -21,12 +18,12 @@ class DirectoryAPI:
         self.service = build('admin', 'directory_v1', credentials=credentials)
 
     def fetch_users_in_organization(self):
-        results = self.service.users().list(customer='my_customer').execute()
+        results = self.service.users().list(customer=COSTUMER).execute()
         users = results.get('users', [])
         return users
 
     def fetch_groups_in_organization(self):
-        results = self.service.groups().list(customer='my_customer').execute()
+        results = self.service.groups().list(customer=COSTUMER).execute()
         groups = results.get('groups', [])
         return groups
 
