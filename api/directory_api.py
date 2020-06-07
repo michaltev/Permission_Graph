@@ -37,12 +37,12 @@ class DirectoryAPI:
         if groups:
             for group in groups:
                 group_id = group['id']
-                group_name = group['name']
-                lst_users_members = self.get_group_members(group_id)
-                dict_users_in_groups[group_name] = lst_users_members
+                group_email = group['email']
+                lst_users_members = self.__get_group_members(group_id)
+                dict_users_in_groups[group_email] = lst_users_members
         return dict_users_in_groups
 
-    def get_group_members(self, group_id):
+    def __get_group_members(self, group_id):
         results = self.service.members().list(groupKey=group_id).execute()
         members = results.get('members', [])
         lst_users_members = []
