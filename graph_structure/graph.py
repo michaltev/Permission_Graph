@@ -13,15 +13,19 @@ class Graph:
 
     def __get_resources_by_identity(self, p_identity_id: str):
         return [edge for edge in self.edges if
-                type(edge) is RoleEdge and edge.from_node.id == p_identity_id]
+                type(edge) == RoleEdge and edge.from_node.id == p_identity_id]
+
+    def __get_resources_by_parent_resource(self, p_parent_resource_id: str):
+        return [edge.to_node for edge in self.edges if
+                type(edge) == ParentEdge and edge.from_node.id == p_parent_resource_id]
 
     def __get_parent_by_resource(self, p_node_id: str):
         return [edge.from_node.id for edge in self.edges if
-                type(edge) is ParentEdge and edge.to_node.id == p_node_id][0]
+                type(edge) == ParentEdge and edge.to_node.id == p_node_id][0]
 
     def __get_identities_by_resource(self, p_resource_id: str):
         return [edge for edge in self.edges if
-                type(edge) is RoleEdge and edge.to_node.id == p_resource_id]
+                type(edge) == RoleEdge and edge.to_node.id == p_resource_id]
 
     def __create_identities_relationships(self, p_curr_resource_node, lst_bindings):
         for binding in lst_bindings:
@@ -29,9 +33,9 @@ class Graph:
             lst_identities = binding["members"]
 
             for identity_str in lst_identities:
-                identity_id, identity_type = generate_identity_id_type(identity_str)
+                # identity_id, identity_type = generate_identity_id_type(identity_str)
                 # creates identities nodes
-                identity_node = IdentityNode(identity_id, identity_type)
+                identity_node = IdentityNode(identity_str)#identity_id, identity_type)
                 self.add_node(identity_node)
 
                 # creates role-edge to each identity
@@ -78,7 +82,7 @@ class Graph:
             if node not in explored:
                 # add node to list of checked nodes
                 explored.append(node)
-                neighbours = self.__get_resources_by_identity(node.id)
+                neighbours = self.__get_resources_by_parent_resource(node.id)
 
                 # add neighbours of node to queue
                 for neighbour in neighbours:
@@ -110,14 +114,14 @@ class Graph:
         node_index = next((index for (index, node) in enumerate(self.nodes) if node.id == p_node.id), None)
         if node_index:
             curr_node = self.nodes[node_index]
-            if (type(curr_node) is ResourceNode) and (type(p_node) is ResourceNode) and \
+            if (type(curr_node) == ResourceNode) and (type(p_node) == ResourceNode) and \
                     (p_node.asset_type != "") and (curr_node.asset_type != p_node.asset_type):
                 self.nodes[node_index] = p_node
                 self.__update_edged_with_node(p_node)
         else:
             self.nodes.append(p_node)
 
-        if (type(p_node) is ResourceNode) and (p_node.asset_type == "Organization"):
+        if (type(p_node) == ResourceNode) and (p_node.asset_type == "Organization"):
             self.root_resource = p_node
 
         return p_node
